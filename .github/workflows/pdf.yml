@@ -1,0 +1,38 @@
+name: Make website PDF
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: Start URL
+        default: https://jnanakshi.org/sjvn/
+      home_only:
+        description: Homepage only (quick test)
+        type: boolean
+        default: true
+      orientation:
+        description: Page orientation
+        type: choice
+        options: [portrait, landscape]
+        default: portrait
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - run: playwright install --with-deps chromium
+      - name: Generate PDF
+        run: |
+          FLAGS=""
+          if [ "${{ inputs.home_only }}" = "true" ]; then FLAGS="--home-only"; fi
+          python -m site2pdf "${{ inputs.url }}" -o website.pdf --orientation "${{ inputs.orientation }}" $FLAGS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: website-pdf
+          path: website.pdf
