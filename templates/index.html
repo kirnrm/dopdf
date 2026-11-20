@@ -1,0 +1,37 @@
+<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Website → printable PDF</title>
+<style>
+ body{font:16px system-ui,sans-serif;max-width:620px;margin:40px auto;padding:0 16px;color:#222}
+ label{display:block;margin:14px 0 4px;font-weight:600} input,select{width:100%;padding:8px;font:inherit;box-sizing:border-box}
+ .row{display:flex;gap:12px}.row>div{flex:1} .chk{display:flex;gap:8px;align-items:center;font-weight:400}.chk input{width:auto}
+ button{margin-top:20px;padding:10px 18px;font:inherit;background:#1d4ed8;color:#fff;border:0;border-radius:6px;cursor:pointer}
+ progress{width:100%;margin-top:18px} #log{font:12px monospace;color:#555;white-space:pre-wrap} a.dl{display:inline-block;margin-top:12px;font-weight:700}
+</style>
+<h1>Website → printable PDF</h1>
+<p>Captures each page at desktop width and lays it out on A4 sheets.</p>
+<form id="f">
+ <label>Start URL</label><input name="url" value="https://{{ hosts[0] }}/sjvn/" required>
+ <div class="row">
+  <div><label>Screen width</label><select name="width"><option>1440</option><option>1280</option><option>1920</option></select></div>
+  <div><label>Orientation</label><select name="orientation"><option>portrait</option><option>landscape</option></select></div>
+  <div><label>Paper</label><select name="paper"><option>a4</option><option>letter</option></select></div>
+ </div>
+ <div class="row">
+  <div><label>Max pages</label><input name="max_pages" type="number" value="80" min="1" max="200"></div>
+  <div><label>Sharpness (1–3)</label><input name="scale" type="number" value="2" min="1" max="3" step="0.5"></div>
+ </div>
+ <label class="chk"><input type="checkbox" name="home_only"> Homepage only (quick test)</label>
+ <button>Generate PDF</button>
+</form>
+<progress id="bar" value="0" max="1" hidden></progress>
+<p id="msg"></p><div id="log"></div>
+<script>
+const f=document.getElementById('f'),bar=document.getElementById('bar'),msg=document.getElementById('msg'),log=document.getElementById('log');
+f.onsubmit=async e=>{e.preventDefault();msg.textContent='Starting…';bar.hidden=false;
+ const r=await fetch('/start',{method:'POST',body:new FormData(f)});const j=await r.json();
+ if(!r.ok){msg.textContent=j.error;return}
+ const t=setInterval(async()=>{const s=await (await fetch('/status/'+j.id)).json();
+  bar.max=s.total||1;bar.value=s.done;msg.textContent=s.msg;log.textContent=s.log.join('\n');
+  if(s.state==='done'){clearInterval(t);msg.innerHTML=s.msg+'<br><a class="dl" href="/download/'+j.id+'">Download PDF</a>'}
+  if(s.state==='error'){clearInterval(t);msg.textContent='Error: '+s.msg}},1500)};
+</script>
